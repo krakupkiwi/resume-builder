@@ -54,8 +54,8 @@ def get_runtime_setting(key: str) -> str:
     """
     overrides = _load_overrides()
     if key in overrides and overrides[key]:
-        return overrides[key]
-    return getattr(settings, key, "") or ""
+        return overrides[key].strip()
+    return (getattr(settings, key, "") or "").strip()
 
 
 def get_all_settings() -> dict:
@@ -89,5 +89,5 @@ def update_settings(updates: dict) -> None:
         elif "..." in value:
             pass  # masked placeholder — skip
         else:
-            current[key] = value
+            current[key] = value.strip()
     _save_overrides(current)
