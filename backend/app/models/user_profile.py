@@ -22,6 +22,9 @@ class UserProfile(Base, TimestampMixin):
     linkedin_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     website_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     professional_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    skills: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    certifications: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    education_entries: Mapped[list | None] = mapped_column(JSON, nullable=True)
     raw_linkedin_data: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     # Relationships

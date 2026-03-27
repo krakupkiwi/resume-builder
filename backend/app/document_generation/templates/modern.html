@@ -41,9 +41,10 @@
   {% set sec_cfg = sections_config.get(section_key, {}) %}
   {% if sec_cfg.get('visible', True) != False %}
 
-  {% if section_key == 'summary' and resume.custom_summary %}
+  {% if section_key == 'summary' %}{% set summary_text = resume.custom_summary or profile.professional_summary %}{% if summary_text %}
   <div class="section-title">{{ sec_cfg.get('title', 'Profile') }}</div>
-  <div class="summary">{{ resume.custom_summary }}</div>
+  <div class="summary">{{ summary_text }}</div>
+  {% endif %}
 
   {% elif section_key == 'experience' and experiences %}
   <div class="section-title">{{ sec_cfg.get('title', 'Experience') }}</div>
@@ -63,12 +64,38 @@
   {% endfor %}
 
   {% elif section_key == 'skills' %}
-  {% set selected_skills = skills.get('selected', []) %}
+  {% set selected_skills = skills.get('selected', []) or profile.skills or [] %}
   {% if selected_skills %}
   <div class="section-title">{{ sec_cfg.get('title', 'Skills') }}</div>
   <div class="skills-grid">
     {% for skill in selected_skills %}<span class="skill-tag">{{ skill }}</span>{% endfor %}
   </div>
+  {% endif %}
+
+  {% elif section_key == 'education' %}
+  {% set edu_list = profile.education_entries or [] %}
+  {% set cert_list = profile.certifications or [] %}
+  {% if edu_list or cert_list %}
+  <div class="section-title">{{ sec_cfg.get('title', 'Education') }}</div>
+  {% for edu in edu_list %}
+  <div class="exp-row">
+    <span class="exp-company">{{ edu.school }}</span>
+    <span class="exp-dates">{{ edu.start_date or '' }}{% if edu.start_date and edu.end_date %} – {% endif %}{{ edu.end_date or '' }}</span>
+  </div>
+  {% if edu.degree or edu.field_of_study %}
+  <div class="exp-title">{{ edu.degree }}{% if edu.degree and edu.field_of_study %}, {% endif %}{{ edu.field_of_study }}{% if edu.location %}, {{ edu.location }}{% endif %}</div>
+  {% endif %}
+  {% endfor %}
+  {% if cert_list %}
+  {% if edu_list %}<div style="margin-top:8px;font-size:9pt;font-weight:bold;color:#0f3d66;text-transform:uppercase;letter-spacing:0.06em;">Certifications &amp; Licences</div>{% endif %}
+  {% for cert in cert_list %}
+  <div class="exp-row">
+    <span class="exp-company" style="font-weight:normal;">{{ cert.name }}</span>
+    <span class="exp-dates">{{ cert.date or '' }}</span>
+  </div>
+  {% if cert.issuer %}<div class="exp-title">{{ cert.issuer }}</div>{% endif %}
+  {% endfor %}
+  {% endif %}
   {% endif %}
 
   {% endif %}

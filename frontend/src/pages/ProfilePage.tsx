@@ -4,7 +4,7 @@ import { useProfileStore } from '@/store/useProfileStore'
 import { profilesApi, experienceApi } from '@/api/profiles'
 import { LinkedInImportDialog } from '@/components/import/LinkedInImportDialog'
 import { ResumeUploadDialog } from '@/components/import/ResumeUploadDialog'
-import type { ExperienceEntry, BulletEntry } from '@/types'
+import type { ExperienceEntry, BulletEntry, UserProfile, CertificationEntry, EducationEntry } from '@/types'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -108,6 +108,264 @@ function BulletEditor({ bullets, onChange }: { bullets: BulletEntry[], onChange:
       <button onClick={addBullet} className="btn-ghost text-xs mt-1">
         <Plus className="w-3 h-3" /> Add bullet
       </button>
+    </div>
+  )
+}
+
+function SkillsPanel({ profile }: { profile: UserProfile }) {
+  const { updateProfile } = useProfileStore()
+  const [skills, setSkills] = useState<string[]>(profile.skills || [])
+  const [input, setInput] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => { setSkills(profile.skills || []) }, [profile.id])
+
+  const addSkill = () => {
+    const s = input.trim()
+    if (!s || skills.includes(s)) { setInput(''); return }
+    setSkills(prev => [...prev, s])
+    setInput('')
+  }
+  const removeSkill = (s: string) => setSkills(prev => prev.filter(x => x !== s))
+
+  const save = async () => {
+    setSaving(true)
+    try {
+      const updated = await profilesApi.update(profile.id, { skills })
+      updateProfile(updated)
+      toast.success('Skills saved')
+    } catch { toast.error('Failed to save') } finally { setSaving(false) }
+  }
+
+  return (
+    <div className="panel rounded-lg p-5 mb-6">
+      <h2 className="text-xs font-mono text-cream-400 uppercase tracking-wider mb-4">Skills</h2>
+      <div className="flex flex-wrap gap-2 mb-3 min-h-[28px]">
+        {skills.map(s => (
+          <span key={s} className="flex items-center gap-1 bg-forest-700 border border-forest-500 text-cream-300 text-xs px-2 py-1 rounded">
+            {s}
+            <button onClick={() => removeSkill(s)} className="text-cream-500 hover:text-red-400 ml-0.5">
+              <X className="w-2.5 h-2.5" />
+            </button>
+          </span>
+        ))}
+        {skills.length === 0 && <p className="text-xs text-cream-500 italic">No skills added yet</p>}
+      </div>
+      <div className="flex gap-2">
+        <input
+          className="input-field flex-1 text-xs"
+          placeholder="Type a skill and press Enter..."
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSkill() } }}
+        />
+        <button onClick={addSkill} className="btn-ghost text-xs px-3">
+          <Plus className="w-3.5 h-3.5" />
+        </button>
+      </div>
+      <div className="flex justify-end mt-4">
+        <button onClick={save} disabled={saving} className="btn-primary text-sm">
+          {saving ? 'Saving...' : 'Save Skills'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function CertificationsPanel({ profile }: { profile: UserProfile }) {
+  const { updateProfile } = useProfileStore()
+  const [certs, setCerts] = useState<Array<CertificationEntry & { _key: string }>>(
+    (profile.certifications || []).map(c => ({ ...c, _key: crypto.randomUUID() }))
+  )
+  const [adding, setAdding] = useState(false)
+  const [form, setForm] = useState({ name: '', issuer: '', date: '' })
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    setCerts((profile.certifications || []).map(c => ({ ...c, _key: crypto.randomUUID() })))
+  }, [profile.id])
+
+  const addCert = () => {
+    if (!form.name.trim()) { toast.error('Name is required'); return }
+    setCerts(prev => [...prev, { name: form.name.trim(), issuer: form.issuer.trim() || null, date: form.date.trim() || null, _key: crypto.randomUUID() }])
+    setForm({ name: '', issuer: '', date: '' })
+    setAdding(false)
+  }
+  const removeCert = (_key: string) => setCerts(prev => prev.filter(c => c._key !== _key))
+
+  const save = async () => {
+    setSaving(true)
+    try {
+      const certData = certs.map(({ _key, ...rest }) => rest)
+      const updated = await profilesApi.update(profile.id, { certifications: certData })
+      updateProfile(updated)
+      toast.success('Certifications saved')
+    } catch { toast.error('Failed to save') } finally { setSaving(false) }
+  }
+
+  return (
+    <div className="panel rounded-lg p-5 mb-6">
+      <h2 className="text-xs font-mono text-cream-400 uppercase tracking-wider mb-4">Certifications &amp; Licences</h2>
+      <div className="space-y-2 mb-3">
+        {certs.map(c => (
+          <div key={c._key} className="flex items-start justify-between gap-2 bg-forest-800 border border-forest-600 rounded px-3 py-2">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-cream-200">{c.name}</p>
+              {(c.issuer || c.date) && (
+                <p className="text-xs text-cream-500 mt-0.5">{c.issuer}{c.issuer && c.date ? ' · ' : ''}{c.date}</p>
+              )}
+            </div>
+            <button onClick={() => removeCert(c._key)} className="btn-danger p-1 shrink-0">
+              <Trash2 className="w-3 h-3" />
+            </button>
+          </div>
+        ))}
+        {certs.length === 0 && !adding && <p className="text-xs text-cream-500 italic">No certifications added yet</p>}
+      </div>
+
+      {adding ? (
+        <div className="bg-forest-800 border border-forest-500 rounded p-3 space-y-2 mb-2">
+          <div>
+            <label className="label">Name *</label>
+            <input className="input-field text-xs" placeholder="e.g. AWS Solutions Architect" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="label">Issuer</label>
+              <input className="input-field text-xs" placeholder="e.g. Amazon" value={form.issuer} onChange={e => setForm(f => ({ ...f, issuer: e.target.value }))} />
+            </div>
+            <div>
+              <label className="label">Date</label>
+              <input className="input-field text-xs" placeholder="YYYY-MM" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+            </div>
+          </div>
+          <div className="flex gap-2 justify-end">
+            <button onClick={() => { setAdding(false); setForm({ name: '', issuer: '', date: '' }) }} className="btn-ghost text-xs">Cancel</button>
+            <button onClick={addCert} className="btn-primary text-xs"><Check className="w-3.5 h-3.5" /> Add</button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => setAdding(true)} className="btn-ghost text-xs border border-dashed border-forest-400 w-full justify-center py-2 mb-2">
+          <Plus className="w-3.5 h-3.5" /> Add Certification / Licence
+        </button>
+      )}
+
+      <div className="flex justify-end mt-2">
+        <button onClick={save} disabled={saving} className="btn-primary text-sm">
+          {saving ? 'Saving...' : 'Save Certifications'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function EducationPanel({ profile }: { profile: UserProfile }) {
+  const { updateProfile } = useProfileStore()
+  const [entries, setEntries] = useState<Array<EducationEntry & { _key: string }>>(
+    (profile.education_entries || []).map(e => ({ ...e, _key: crypto.randomUUID() }))
+  )
+  const [adding, setAdding] = useState(false)
+  const [form, setForm] = useState({ school: '', degree: '', field_of_study: '', start_date: '', end_date: '', location: '' })
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    setEntries((profile.education_entries || []).map(e => ({ ...e, _key: crypto.randomUUID() })))
+  }, [profile.id])
+
+  const addEntry = () => {
+    if (!form.school.trim()) { toast.error('School name is required'); return }
+    setEntries(prev => [...prev, {
+      school: form.school.trim(),
+      degree: form.degree.trim() || null,
+      field_of_study: form.field_of_study.trim() || null,
+      start_date: form.start_date.trim() || null,
+      end_date: form.end_date.trim() || null,
+      location: form.location.trim() || null,
+      _key: crypto.randomUUID(),
+    }])
+    setForm({ school: '', degree: '', field_of_study: '', start_date: '', end_date: '', location: '' })
+    setAdding(false)
+  }
+  const removeEntry = (_key: string) => setEntries(prev => prev.filter(e => e._key !== _key))
+
+  const save = async () => {
+    setSaving(true)
+    try {
+      const data = entries.map(({ _key, ...rest }) => rest)
+      const updated = await profilesApi.update(profile.id, { education_entries: data })
+      updateProfile(updated)
+      toast.success('Education saved')
+    } catch { toast.error('Failed to save') } finally { setSaving(false) }
+  }
+
+  return (
+    <div className="panel rounded-lg p-5 mb-6">
+      <h2 className="text-xs font-mono text-cream-400 uppercase tracking-wider mb-4">Education</h2>
+      <div className="space-y-2 mb-3">
+        {entries.map(e => (
+          <div key={e._key} className="flex items-start justify-between gap-2 bg-forest-800 border border-forest-600 rounded px-3 py-2">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-cream-200">{e.school}</p>
+              {(e.degree || e.field_of_study) && (
+                <p className="text-xs text-cream-300 mt-0.5">{e.degree}{e.degree && e.field_of_study ? ', ' : ''}{e.field_of_study}</p>
+              )}
+              <p className="text-xs text-cream-500 mt-0.5">
+                {e.start_date}{e.start_date && (e.end_date) ? ' – ' : ''}{e.end_date}
+                {e.location ? (e.start_date || e.end_date ? ' · ' : '') + e.location : ''}
+              </p>
+            </div>
+            <button onClick={() => removeEntry(e._key)} className="btn-danger p-1 shrink-0">
+              <Trash2 className="w-3 h-3" />
+            </button>
+          </div>
+        ))}
+        {entries.length === 0 && !adding && <p className="text-xs text-cream-500 italic">No education added yet</p>}
+      </div>
+
+      {adding ? (
+        <div className="bg-forest-800 border border-forest-500 rounded p-3 space-y-2 mb-2">
+          <div>
+            <label className="label">School / Institution *</label>
+            <input className="input-field text-xs" placeholder="e.g. University of Queensland" value={form.school} onChange={e => setForm(f => ({ ...f, school: e.target.value }))} />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="label">Degree</label>
+              <input className="input-field text-xs" placeholder="e.g. Bachelor of Science" value={form.degree} onChange={e => setForm(f => ({ ...f, degree: e.target.value }))} />
+            </div>
+            <div>
+              <label className="label">Field of Study</label>
+              <input className="input-field text-xs" placeholder="e.g. Computer Science" value={form.field_of_study} onChange={e => setForm(f => ({ ...f, field_of_study: e.target.value }))} />
+            </div>
+            <div>
+              <label className="label">Start Date</label>
+              <input className="input-field text-xs" placeholder="YYYY or YYYY-MM" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} />
+            </div>
+            <div>
+              <label className="label">End Date</label>
+              <input className="input-field text-xs" placeholder="YYYY or YYYY-MM" value={form.end_date} onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))} />
+            </div>
+            <div className="col-span-2">
+              <label className="label">Location</label>
+              <input className="input-field text-xs" placeholder="e.g. Brisbane, Australia" value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} />
+            </div>
+          </div>
+          <div className="flex gap-2 justify-end">
+            <button onClick={() => { setAdding(false); setForm({ school: '', degree: '', field_of_study: '', start_date: '', end_date: '', location: '' }) }} className="btn-ghost text-xs">Cancel</button>
+            <button onClick={addEntry} className="btn-primary text-xs"><Check className="w-3.5 h-3.5" /> Add</button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => setAdding(true)} className="btn-ghost text-xs border border-dashed border-forest-400 w-full justify-center py-2 mb-2">
+          <Plus className="w-3.5 h-3.5" /> Add Education
+        </button>
+      )}
+
+      <div className="flex justify-end mt-2">
+        <button onClick={save} disabled={saving} className="btn-primary text-sm">
+          {saving ? 'Saving...' : 'Save Education'}
+        </button>
+      </div>
     </div>
   )
 }
@@ -346,6 +604,9 @@ export function ProfilePage() {
         </div>
 
         <ProfileForm />
+        <SkillsPanel profile={profile} />
+        <CertificationsPanel profile={profile} />
+        <EducationPanel profile={profile} />
 
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xs font-mono text-cream-400 uppercase tracking-wider">

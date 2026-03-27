@@ -32,5 +32,5 @@ export const useAIStore = create<AIState>((set) => ({
   setStreaming: (isStreaming) => set({ isStreaming }),
   setGapAnalysis: (gapAnalysis) => set({ gapAnalysis }),
   setPendingTaskId: (pendingTaskId) => set({ pendingTaskId }),
-  clearMessages: () => set({ messages: [], gapAnalysis: null }),
+  clearMessages: () => set({ messages: [] }),
 }))

@@ -1,3 +1,18 @@
+export interface CertificationEntry {
+  name: string
+  issuer: string | null
+  date: string | null
+}
+
+export interface EducationEntry {
+  school: string
+  degree: string | null
+  field_of_study: string | null
+  start_date: string | null
+  end_date: string | null
+  location: string | null
+}
+
 export interface UserProfile {
   id: string
   full_name: string
@@ -7,6 +22,9 @@ export interface UserProfile {
   linkedin_url: string | null
   website_url: string | null
   professional_summary: string | null
+  skills: string[] | null
+  certifications: CertificationEntry[] | null
+  education_entries: EducationEntry[] | null
   created_at: string
   updated_at: string
 }

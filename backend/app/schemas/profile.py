@@ -12,6 +12,9 @@ class ProfileCreate(BaseModel):
     linkedin_url: str | None = None
     website_url: str | None = None
     professional_summary: str | None = None
+    skills: list[str] | None = None
+    certifications: list[dict] | None = None
+    education_entries: list[dict] | None = None
 
 
 class ProfileUpdate(BaseModel):
@@ -22,6 +25,9 @@ class ProfileUpdate(BaseModel):
     linkedin_url: str | None = None
     website_url: str | None = None
     professional_summary: str | None = None
+    skills: list[str] | None = None
+    certifications: list[dict] | None = None
+    education_entries: list[dict] | None = None
 
 
 class ProfileResponse(BaseModel):
@@ -33,6 +39,9 @@ class ProfileResponse(BaseModel):
     linkedin_url: str | None
     website_url: str | None
     professional_summary: str | None
+    skills: list[str] | None
+    certifications: list[dict] | None
+    education_entries: list[dict] | None
     created_at: datetime
     updated_at: datetime
 

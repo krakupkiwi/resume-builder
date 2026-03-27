@@ -32,6 +32,10 @@ def _run_migrations() -> None:
     migrations = [
         # Added for style customisation feature
         "ALTER TABLE resume_versions ADD COLUMN style_config JSON DEFAULT '{}'",
+        # Added for profile skills, certifications, and education
+        "ALTER TABLE user_profiles ADD COLUMN skills JSON DEFAULT '[]'",
+        "ALTER TABLE user_profiles ADD COLUMN certifications JSON DEFAULT '[]'",
+        "ALTER TABLE user_profiles ADD COLUMN education_entries JSON DEFAULT '[]'",
     ]
     with engine.connect() as conn:
         for sql in migrations:
