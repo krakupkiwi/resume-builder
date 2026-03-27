@@ -1,8 +1,9 @@
 import json
-from typing import AsyncIterator
+from typing import AsyncIterator, Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -13,6 +14,13 @@ from app.schemas.ai import (
     ExperienceScoringRequest,
     TaskStatus,
 )
+
+
+class InterviewStartRequest(BaseModel):
+    requirement: str
+    confidence: str
+    score: float
+    evidence: str | None = None
 
 router = APIRouter()
 
@@ -90,6 +98,29 @@ def score_experience(data: ExperienceScoringRequest):
         job_description=data.job_description,
     )
     return TaskStatus(task_id=task.id, status="pending")
+
+
+@router.post("/interview/start")
+async def start_interview(data: InterviewStartRequest):
+    """Start a branching discovery interview for a gap item. Streams the first question."""
+    from app.ai.factory import get_ai_provider
+    from app.ai.prompts.interview import build_interview_start_messages
+
+    provider = get_ai_provider()
+    gap_item = {
+        "requirement": data.requirement,
+        "confidence": data.confidence,
+        "score": data.score,
+        "evidence": data.evidence or f"Current match level: {data.confidence} ({data.score:.0f}%)",
+    }
+    messages = build_interview_start_messages(gap_item=gap_item, candidate_context={})
+
+    async def event_stream() -> AsyncIterator[str]:
+        async for chunk in provider.stream(messages):
+            yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+        yield f"data: {json.dumps({'done': True})}\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
 @router.get("/tasks/{task_id}", response_model=TaskStatus)

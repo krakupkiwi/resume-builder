@@ -14,6 +14,8 @@ export const jobsApi = {
 export const coverLettersApi = {
   create: (data: Partial<CoverLetter>) => apiClient.post<CoverLetter>('/cover-letters/', data).then(r => r.data),
   get: (id: string) => apiClient.get<CoverLetter>(`/cover-letters/${id}`).then(r => r.data),
+  listByJob: (jobApplicationId: string) =>
+    apiClient.get<CoverLetter[]>('/cover-letters/', { params: { job_application_id: jobApplicationId } }).then(r => r.data),
   update: (id: string, data: Partial<CoverLetter>) => apiClient.patch<CoverLetter>(`/cover-letters/${id}`, data).then(r => r.data),
   generate: (jobApplicationId: string, resumeVersionId?: string, tone?: string, notes?: string) =>
     apiClient.post('/cover-letters/generate', {

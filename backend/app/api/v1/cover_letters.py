@@ -14,6 +14,17 @@ from app.schemas.ai import TaskStatus
 router = APIRouter()
 
 
+@router.get("/", response_model=list[CoverLetterResponse])
+def list_cover_letters(job_application_id: str, db: Session = Depends(get_db)):
+    """List all cover letters for a job application."""
+    return (
+        db.query(CoverLetter)
+        .filter(CoverLetter.job_application_id == job_application_id)
+        .order_by(CoverLetter.created_at.desc())
+        .all()
+    )
+
+
 @router.post("/", response_model=CoverLetterResponse, status_code=201)
 def create_cover_letter(data: CoverLetterCreate, db: Session = Depends(get_db)):
     letter = CoverLetter(**data.model_dump())
