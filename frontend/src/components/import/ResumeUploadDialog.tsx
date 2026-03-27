@@ -73,24 +73,23 @@ export function ResumeUploadDialog({ onClose, profileId }: Props) {
     try {
       let result: UserProfile
       const targetProfileId = profileId || activeProfileId
+      const profileExists = targetProfileId && profiles.some(p => p.id === targetProfileId)
 
-      if (targetProfileId) {
+      if (profileExists) {
         const res = await apiClient.post<UserProfile>(`/import/resume/${targetProfileId}`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         })
         result = res.data
-        const updated = await profilesApi.list()
-        setProfiles(updated)
-        setActiveProfile(result.id)
       } else {
         const res = await apiClient.post<UserProfile>('/import/resume/new', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         })
         result = res.data
-        const updated = await profilesApi.list()
-        setProfiles(updated)
-        setActiveProfile(result.id)
       }
+
+      const updated = await profilesApi.list()
+      setProfiles(updated)
+      setActiveProfile(result.id)
 
       toast.success('Resume imported successfully!')
       setStage('done')
