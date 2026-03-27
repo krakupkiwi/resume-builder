@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Georgia', serif; font-size: 10pt; color: #1a1a1a; line-height: 1.4; padding: 1.5cm 2cm; }
+  .name { font-size: 20pt; font-weight: bold; text-align: center; color: #1a1a2e; margin-bottom: 4px; }
+  .contact { text-align: center; font-size: 9pt; color: #555; margin-bottom: 12px; }
+  .contact span + span::before { content: " | "; color: #bbb; }
+  .divider { border: none; border-top: 1.5px solid #1a1a2e; margin: 8px 0; }
+  .section-title { font-size: 11pt; font-weight: bold; text-transform: uppercase; color: #1a1a2e; letter-spacing: 0.05em; border-bottom: 1px solid #ccc; padding-bottom: 2px; margin: 14px 0 8px 0; }
+  .summary { font-size: 10pt; margin-bottom: 8px; }
+  .exp-header { display: flex; justify-content: space-between; align-items: baseline; }
+  .exp-company { font-weight: bold; font-size: 10.5pt; }
+  .exp-title { font-size: 10pt; }
+  .exp-meta { font-size: 9pt; color: #666; font-style: italic; margin: 2px 0 4px 0; }
+  ul.bullets { padding-left: 1.2em; margin-bottom: 8px; }
+  ul.bullets li { font-size: 10pt; margin-bottom: 2px; }
+  .skills-list { font-size: 10pt; }
+</style>
+</head>
+<body>
+
+<div class="name">{{ profile.full_name }}</div>
+<div class="contact">
+  {% if profile.email %}<span>{{ profile.email }}</span>{% endif %}
+  {% if profile.phone %}<span>{{ profile.phone }}</span>{% endif %}
+  {% if profile.location %}<span>{{ profile.location }}</span>{% endif %}
+  {% if profile.linkedin_url %}<span>{{ profile.linkedin_url }}</span>{% endif %}
+</div>
+<hr class="divider">
+
+{% for section_key in sections_order %}
+  {% set sec_cfg = sections_config.get(section_key, {}) %}
+  {% if sec_cfg.get('visible', True) != False %}
+
+  {% if section_key == 'summary' and resume.custom_summary %}
+  <div class="section-title">{{ sec_cfg.get('title', 'Professional Summary') }}</div>
+  <div class="summary">{{ resume.custom_summary }}</div>
+
+  {% elif section_key == 'experience' and experiences %}
+  <div class="section-title">{{ sec_cfg.get('title', 'Experience') }}</div>
+  {% for exp in experiences %}
+  <div class="exp-header">
+    <span class="exp-company">{{ exp.company_name }}</span>
+    <span class="exp-meta">
+      {{ exp.start_date or '' }}{% if exp.start_date %} – {% endif %}{{ exp.end_date or 'Present' }}
+    </span>
+  </div>
+  <div class="exp-title">{{ exp.job_title }}{% if exp.location %} &nbsp;•&nbsp; {{ exp.location }}{% endif %}</div>
+  {% if exp.bullets %}
+  <ul class="bullets">
+    {% for bullet in exp.bullets %}
+    <li>{{ bullet.text if bullet is mapping else bullet }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% endfor %}
+
+  {% elif section_key == 'skills' %}
+  {% set selected_skills = skills.get('selected', []) %}
+  {% if selected_skills %}
+  <div class="section-title">{{ sec_cfg.get('title', 'Skills') }}</div>
+  <div class="skills-list">{{ selected_skills | join(' &nbsp;•&nbsp; ') }}</div>
+  {% endif %}
+
+  {% endif %}
+  {% endif %}
+{% endfor %}
+
+</body>
+</html>

@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>ResumeBuilder</Name>
+  <Repository>ghcr.io/yourusername/resume-builder:latest</Repository>
+  <Registry>https://github.com/yourusername/resume-builder/pkgs/container/resume-builder</Registry>
+  <Network>bridge</Network>
+  <Shell>bash</Shell>
+  <Privileged>false</Privileged>
+  <Support/>
+  <Project/>
+  <Overview>
+    Self-hosted resume builder with AI-powered tailoring. Import your LinkedIn profile, tailor resumes to job ads, generate Word and PDF documents, and track your job applications. Supports Claude, OpenAI, and Ollama AI providers.
+  </Overview>
+  <Category>Productivity:</Category>
+  <WebUI>http://[IP]:[PORT:3000]/</WebUI>
+  <TemplateURL/>
+  <Icon>https://raw.githubusercontent.com/yourusername/resume-builder/main/icon.png</Icon>
+  <ExtraParams>--restart=unless-stopped</ExtraParams>
+  <PostArgs/>
+  <CPUset/>
+  <DateInstalled/>
+  <DonateText/>
+  <DonateLink/>
+  <Requires>Redis container (redis:7-alpine) must be running. Set REDIS_URL to redis://redis:6379/0 and connect both containers to the same custom network.</Requires>
+
+  <!-- Port mappings -->
+  <Config Name="Web UI Port" Target="3000" Default="3000" Mode="tcp" Description="Frontend web interface port" Type="Port" Display="always" Required="true" Mask="false">3000</Config>
+  <Config Name="API Port" Target="8000" Default="8000" Mode="tcp" Description="Backend API port" Type="Port" Display="always" Required="false" Mask="false">8000</Config>
+
+  <!-- Volume mappings -->
+  <Config Name="Data" Target="/data" Default="/mnt/user/appdata/resume-builder" Mode="rw" Description="Persistent data storage (database + generated documents)" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/resume-builder</Config>
+
+  <!-- Environment variables -->
+  <Config Name="AI Provider" Target="AI_PROVIDER" Default="claude" Description="AI provider to use: claude, openai, or ollama" Type="Variable" Display="always" Required="true" Mask="false">claude</Config>
+  <Config Name="Anthropic API Key" Target="ANTHROPIC_API_KEY" Default="" Description="Required if AI_PROVIDER=claude. Get from console.anthropic.com" Type="Variable" Display="always" Required="false" Mask="true"/>
+  <Config Name="Claude Model" Target="CLAUDE_MODEL" Default="claude-opus-4-5" Description="Claude model to use" Type="Variable" Display="advanced" Required="false" Mask="false">claude-opus-4-5</Config>
+  <Config Name="OpenAI API Key" Target="OPENAI_API_KEY" Default="" Description="Required if AI_PROVIDER=openai" Type="Variable" Display="always" Required="false" Mask="true"/>
+  <Config Name="OpenAI Model" Target="OPENAI_MODEL" Default="gpt-4o" Description="OpenAI model to use" Type="Variable" Display="advanced" Required="false" Mask="false">gpt-4o</Config>
+  <Config Name="Ollama Base URL" Target="OLLAMA_BASE_URL" Default="http://ollama:11434" Description="Ollama server URL (required if AI_PROVIDER=ollama)" Type="Variable" Display="always" Required="false" Mask="false">http://ollama:11434</Config>
+  <Config Name="Ollama Model" Target="OLLAMA_MODEL" Default="llama3.2" Description="Ollama model to use" Type="Variable" Display="advanced" Required="false" Mask="false">llama3.2</Config>
+  <Config Name="Redis URL" Target="REDIS_URL" Default="redis://redis:6379/0" Description="Redis connection URL for async task queue" Type="Variable" Display="always" Required="true" Mask="false">redis://redis:6379/0</Config>
+  <Config Name="Secret Key" Target="SECRET_KEY" Default="" Description="Random secret key for security. Generate with: openssl rand -hex 32" Type="Variable" Display="always" Required="true" Mask="true"/>
+  <Config Name="Search Provider" Target="SEARCH_PROVIDER" Default="duckduckgo" Description="Web search provider: duckduckgo or serpapi" Type="Variable" Display="advanced" Required="false" Mask="false">duckduckgo</Config>
+  <Config Name="SerpAPI Key" Target="SERPAPI_KEY" Default="" Description="Optional SerpAPI key for enhanced web search" Type="Variable" Display="advanced" Required="false" Mask="true"/>
+</Container>
