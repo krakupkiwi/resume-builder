@@ -23,6 +23,24 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def init_db() -> None:
     Base.metadata.create_all(bind=engine)
+    # Additive column migrations for existing databases (safe to re-run)
+    _run_migrations()
+
+
+def _run_migrations() -> None:
+    """Apply additive schema changes that create_all won't handle for existing tables."""
+    migrations = [
+        # Added for style customisation feature
+        "ALTER TABLE resume_versions ADD COLUMN style_config JSON DEFAULT '{}'",
+    ]
+    with engine.connect() as conn:
+        for sql in migrations:
+            try:
+                conn.execute(text(sql))
+                conn.commit()
+            except Exception:
+                # Column already exists — ignore
+                pass
 
 
 def get_db():

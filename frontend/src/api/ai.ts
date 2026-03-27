@@ -106,6 +106,30 @@ export function generateDocumentUrl(resumeVersionId: string): string {
   return `${API_BASE}/documents/generate`
 }
 
+export async function suggestStyles(role?: string, industry?: string) {
+  const res = await fetch(`${API_BASE}/ai/suggest-styles`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role: role || null, industry: industry || null }),
+  })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function analyzeStyleImage(file: File) {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await fetch(`${API_BASE}/ai/analyze-style-image`, {
+    method: 'POST',
+    body: form,
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Upload failed' }))
+    throw new Error(err.detail || 'Upload failed')
+  }
+  return res.json()
+}
+
 export function previewUrl(resumeVersionId: string): string {
   return `${API_BASE}/documents/preview/${resumeVersionId}`
 }

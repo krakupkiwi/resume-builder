@@ -12,12 +12,12 @@ export function DocumentPreview({ resumeVersionId, refreshKey }: Props) {
   const [zoom, setZoom] = useState(0.75)
   const [loading, setLoading] = useState(false)
 
-  const url = resumeVersionId ? previewUrl(resumeVersionId) : null
+  const url = resumeVersionId ? `${previewUrl(resumeVersionId)}?v=${refreshKey ?? 0}` : null
 
   useEffect(() => {
     if (!url) return
     setLoading(true)
-  }, [url, refreshKey])
+  }, [url])
 
   if (!resumeVersionId) {
     return (
@@ -57,17 +57,19 @@ export function DocumentPreview({ resumeVersionId, refreshKey }: Props) {
         </div>
       </div>
 
+      {/* Loading progress bar */}
+      {loading && (
+        <div className="h-1 bg-forest-700 shrink-0 overflow-hidden">
+          <div className="h-full w-2/5 bg-gold-500 rounded animate-loading-bar" />
+        </div>
+      )}
+
       {/* Document preview area */}
       <div className="flex-1 overflow-auto bg-forest-800 flex justify-center py-6 px-4">
         <div
-          className="origin-top transition-transform duration-200 shadow-2xl shadow-forest-950/80"
+          className="relative origin-top transition-transform duration-200 shadow-2xl shadow-forest-950/80"
           style={{ transform: `scale(${zoom})`, width: `${100 / zoom}%`, maxWidth: `${794 / zoom}px` }}
         >
-          {loading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-parchment-50 z-10">
-              <RefreshCw className="w-6 h-6 text-ink-700 animate-spin" />
-            </div>
-          )}
           <iframe
             ref={iframeRef}
             src={url || ''}

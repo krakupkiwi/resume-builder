@@ -14,6 +14,7 @@ class ResumeCreate(BaseModel):
     selected_experience_ids: list[str] = []
     custom_summary: str | None = None
     skills_selection: dict[str, Any] = {}
+    style_config: dict[str, Any] = {}
     is_base: bool = False
 
 
@@ -28,6 +29,7 @@ class ResumeUpdate(BaseModel):
     custom_summary: str | None = None
     skills_selection: dict[str, Any] | None = None
     gap_analysis_result: dict[str, Any] | None = None
+    style_config: dict[str, Any] | None = None
     is_base: bool | None = None
 
 
@@ -44,6 +46,7 @@ class ResumeResponse(BaseModel):
     custom_summary: str | None
     skills_selection: dict
     gap_analysis_result: dict | None
+    style_config: dict
     is_base: bool
     created_at: datetime
     updated_at: datetime

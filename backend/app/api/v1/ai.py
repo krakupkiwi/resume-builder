@@ -1,8 +1,9 @@
 import asyncio
+import base64
 import json
 from typing import AsyncIterator, Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -23,6 +24,12 @@ class InterviewStartRequest(BaseModel):
     confidence: str
     score: float
     evidence: str | None = None
+
+
+class StyleSuggestRequest(BaseModel):
+    role: str | None = None
+    industry: str | None = None
+
 
 router = APIRouter()
 
@@ -137,3 +144,58 @@ def get_task_status(task_id: str):
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     return TaskStatus(**task)
+
+
+@router.post("/suggest-styles")
+async def suggest_styles(data: StyleSuggestRequest):
+    """Ask AI to suggest resume style presets for a given role/industry."""
+    from app.ai.factory import get_ai_provider
+    from app.ai.prompts.style_prompts import build_style_suggest_messages
+
+    provider = get_ai_provider()
+    messages = build_style_suggest_messages(data.role, data.industry)
+    try:
+        raw = await provider.complete(messages)
+        raw = raw.strip()
+        # Strip markdown code fences if the model wraps output
+        if raw.startswith("```"):
+            lines = raw.splitlines()
+            raw = "\n".join(lines[1:-1] if lines[-1].startswith("```") else lines[1:])
+        return json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=500, detail=f"Could not parse style suggestions: {exc}")
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.post("/analyze-style-image")
+async def analyze_style_image(file: UploadFile = File(...)):
+    """Analyze an uploaded resume image and extract its style properties."""
+    from app.ai.factory import get_ai_provider
+    from app.ai.prompts.style_prompts import build_style_image_analysis_messages
+
+    content = await file.read()
+    if len(content) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large (max 10 MB)")
+
+    media_type = file.content_type or "image/jpeg"
+    if media_type == "application/pdf" or (file.filename or "").lower().endswith(".pdf"):
+        raise HTTPException(
+            status_code=400,
+            detail="PDF upload is not supported — please upload a PNG or JPG screenshot of the resume.",
+        )
+
+    image_b64 = base64.b64encode(content).decode()
+    provider = get_ai_provider()
+    messages = build_style_image_analysis_messages(image_b64, media_type)
+    try:
+        raw = await provider.complete(messages)
+        raw = raw.strip()
+        if raw.startswith("```"):
+            lines = raw.splitlines()
+            raw = "\n".join(lines[1:-1] if lines[-1].startswith("```") else lines[1:])
+        return json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=500, detail=f"Could not parse style analysis: {exc}")
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))

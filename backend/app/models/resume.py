@@ -40,6 +40,9 @@ class ResumeVersion(Base, TimestampMixin):
     skills_selection: Mapped[dict] = mapped_column(JSON, default=dict)  # {"selected": [...], "order": [...]}
     gap_analysis_result: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
+    # Visual style overrides: {accent_color, font, spacing, name_size}
+    style_config: Mapped[dict] = mapped_column(JSON, default=dict)
+
     is_base: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Relationships

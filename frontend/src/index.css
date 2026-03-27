@@ -119,6 +119,15 @@
     0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
     40% { transform: scale(1); opacity: 1; }
   }
+
+  .animate-loading-bar {
+    animation: loading-bar 1.4s ease-in-out infinite;
+  }
+
+  @keyframes loading-bar {
+    0%   { transform: translateX(-150%); }
+    100% { transform: translateX(400%); }
+  }
 }
 
 @layer utilities {

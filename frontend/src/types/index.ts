@@ -40,6 +40,20 @@ export interface ExperienceEntry {
   updated_at: string
 }
 
+export interface StyleConfig {
+  accent_color?: string   // hex e.g. '#0f3d66'
+  font?: 'serif' | 'sans' | 'humanist' | 'mono'
+  spacing?: 'compact' | 'normal' | 'spacious'
+  name_size?: number      // pt
+}
+
+export interface StylePreset extends StyleConfig {
+  name: string
+  description: string
+  vibe: string
+  template_name: string
+}
+
 export interface ResumeVersion {
   id: string
   profile_id: string
@@ -53,6 +67,7 @@ export interface ResumeVersion {
   custom_summary: string | null
   skills_selection: { selected?: string[]; order?: string[] }
   gap_analysis_result: GapAnalysisResult | null
+  style_config: StyleConfig
   is_base: boolean
   created_at: string
   updated_at: string

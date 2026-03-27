@@ -1,23 +1,18 @@
 import { useEffect, useState } from 'react'
-import { Plus, Download, RefreshCw, FileText, ChevronDown } from 'lucide-react'
+import { Plus, Download, RefreshCw, FileText, Palette } from 'lucide-react'
 import { useProfileStore } from '@/store/useProfileStore'
 import { useResumeStore } from '@/store/useResumeStore'
 import { useAIStore } from '@/store/useAIStore'
 import { resumesApi } from '@/api/resumes'
-import { aiApi, previewUrl, generateDocumentUrl } from '@/api/ai'
+import { aiApi, previewUrl } from '@/api/ai'
 import { apiClient } from '@/api/client'
 import { AIChatPanel } from '@/components/layout/AIChatPanel'
 import { DocumentPreview } from '@/components/layout/DocumentPreview'
+import { StylesModal } from '@/components/StylesModal'
 import { cn } from '@/lib/utils'
 import { pollTask } from '@/lib/utils'
 import { toast } from 'sonner'
 import type { ResumeVersion } from '@/types'
-
-const TEMPLATES = [
-  { id: 'classic', label: 'Classic', desc: 'Traditional serif layout' },
-  { id: 'modern', label: 'Modern', desc: 'Clean blue header design' },
-  { id: 'minimal', label: 'Minimal', desc: 'Sparse, typographic' },
-]
 
 function SectionsSidebar({
   resume,
@@ -32,17 +27,25 @@ function SectionsSidebar({
   const [analyzing, setAnalyzing] = useState(false)
   const { setGapAnalysis } = useAIStore()
   const [previewKey, setPreviewKey] = useState(0)
+  const [togglingId, setTogglingId] = useState<string | null>(null)
+  const [showStyles, setShowStyles] = useState(false)
 
   const selectedIds = resume.selected_experience_ids || []
 
   const toggleExp = async (id: string) => {
+    if (togglingId) return
+    setTogglingId(id)
     const next = selectedIds.includes(id)
       ? selectedIds.filter(x => x !== id)
       : [...selectedIds, id]
-    if (!activeProfileId) return
-    const updated = await resumesApi.update(activeProfileId, resume.id, { selected_experience_ids: next })
-    onUpdate(updated)
-    setPreviewKey(k => k + 1)
+    if (!activeProfileId) { setTogglingId(null); return }
+    try {
+      const updated = await resumesApi.update(activeProfileId, resume.id, { selected_experience_ids: next })
+      onUpdate(updated)
+      setPreviewKey(k => k + 1)
+    } finally {
+      setTogglingId(null)
+    }
   }
 
   const saveJobDesc = async () => {
@@ -102,31 +105,48 @@ function SectionsSidebar({
         <p className="font-display text-sm text-gold-400 truncate">{resume.name}</p>
       </div>
 
+      {/* Styles modal */}
+      {showStyles && (
+        <StylesModal
+          currentTemplateName={resume.template_name}
+          currentStyleConfig={resume.style_config || {}}
+          onApply={async (templateName, styleConfig) => {
+            if (!activeProfileId) return
+            const updated = await resumesApi.update(activeProfileId, resume.id, {
+              template_name: templateName,
+              style_config: styleConfig,
+            })
+            onUpdate(updated)
+            setPreviewKey(k => k + 1)
+            setShowStyles(false)
+            toast.success('Style applied')
+          }}
+          onClose={() => setShowStyles(false)}
+        />
+      )}
+
       <div className="flex-1 overflow-y-auto p-3 space-y-4">
-        {/* Template */}
+        {/* Style */}
         <div>
-          <label className="label">Template</label>
-          <div className="grid grid-cols-3 gap-1.5">
-            {TEMPLATES.map(t => (
-              <button
-                key={t.id}
-                onClick={async () => {
-                  if (!activeProfileId) return
-                  const updated = await resumesApi.update(activeProfileId, resume.id, { template_name: t.id })
-                  onUpdate(updated)
-                  setPreviewKey(k => k + 1)
-                }}
-                className={cn(
-                  'text-xs py-1.5 px-2 rounded border transition-colors text-center',
-                  resume.template_name === t.id
-                    ? 'bg-gold-500/15 border-gold-500/50 text-gold-400'
-                    : 'border-forest-500 text-cream-500 hover:border-forest-400'
-                )}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
+          <label className="label">Style</label>
+          <button
+            onClick={() => setShowStyles(true)}
+            className="w-full flex items-center justify-between px-3 py-2 rounded border border-forest-500 hover:border-forest-400 text-xs text-cream-400 hover:text-cream-200 transition-colors bg-forest-800/40"
+          >
+            <div className="flex items-center gap-2">
+              {resume.style_config?.accent_color && (
+                <span
+                  className="w-3.5 h-3.5 rounded-full border border-white/20 shrink-0"
+                  style={{ background: resume.style_config.accent_color }}
+                />
+              )}
+              <span className="capitalize">
+                {resume.template_name}
+                {resume.style_config?.font ? ` · ${resume.style_config.font}` : ''}
+              </span>
+            </div>
+            <Palette className="w-3.5 h-3.5 text-gold-400" />
+          </button>
         </div>
 
         {/* Sections toggle */}
@@ -163,15 +183,26 @@ function SectionsSidebar({
               <button
                 key={exp.id}
                 onClick={() => toggleExp(exp.id)}
+                disabled={togglingId !== null}
                 className={cn(
                   'w-full text-left text-xs px-2.5 py-1.5 rounded border transition-colors',
                   selectedIds.includes(exp.id)
                     ? 'border-gold-500/50 bg-gold-500/10 text-cream-200'
-                    : 'border-forest-500 text-cream-500 hover:border-forest-400'
+                    : 'border-forest-500 text-cream-500 hover:border-forest-400',
+                  togglingId === exp.id && 'opacity-60'
                 )}
               >
-                <span className="font-500">{exp.job_title}</span>
-                <span className="text-cream-500"> @ {exp.company_name}</span>
+                {togglingId === exp.id ? (
+                  <span className="flex items-center gap-1.5">
+                    <RefreshCw className="w-2.5 h-2.5 animate-spin shrink-0" />
+                    <span>Updating...</span>
+                  </span>
+                ) : (
+                  <>
+                    <span className="font-500">{exp.job_title}</span>
+                    <span className="text-cream-500"> @ {exp.company_name}</span>
+                  </>
+                )}
               </button>
             ))}
           </div>
@@ -274,7 +305,7 @@ export function ResumePage() {
 
       {/* 3-panel layout */}
       {activeResume ? (
-        <div className="flex-1 overflow-hidden grid" style={{ gridTemplateColumns: '220px 1fr 280px' }}>
+        <div className="flex-1 overflow-hidden min-h-0 grid" style={{ gridTemplateColumns: '220px 1fr 280px', gridTemplateRows: '1fr' }}>
           <SectionsSidebar resume={activeResume} onUpdate={r => { updateResume(r); setPreviewKey(k => k + 1) }} />
           <DocumentPreview resumeVersionId={activeResume.id} refreshKey={previewKey} />
           <AIChatPanel resumeVersionId={activeResume.id} />
