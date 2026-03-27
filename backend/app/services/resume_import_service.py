@@ -57,7 +57,9 @@ def extract_text(content: bytes, filename: str) -> str:
 RESUME_PARSE_PROMPT = """\
 You are a resume parser. Extract structured information from the resume text below.
 
-Return ONLY valid JSON matching this exact schema — no markdown, no explanation:
+IMPORTANT: Your entire response must be a single valid JSON object. Do not include any text before or after the JSON. Do not use markdown code fences. Start your response with { and end with }.
+
+Use this exact schema:
 {
   "full_name": "string or null",
   "email": "string or null",
@@ -95,6 +97,37 @@ Resume text:
 """
 
 
+def _extract_json_from_response(response: str) -> dict:
+    """
+    Robustly extract a JSON object from an AI response.
+    Handles: markdown fences, leading/trailing prose, partial wrapping.
+    """
+    text = response.strip()
+
+    # 1. Strip markdown code fences (```json ... ``` or ``` ... ```)
+    text = re.sub(r"^```(?:json)?\s*", "", text)
+    text = re.sub(r"\s*```$", "", text.strip())
+
+    # 2. Try parsing the whole thing first
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+
+    # 3. Find the first { ... } block in the response (handles leading prose)
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    if match:
+        try:
+            return json.loads(match.group())
+        except json.JSONDecodeError:
+            pass
+
+    raise ValueError(
+        f"Could not extract valid JSON from AI response.\n"
+        f"Response preview: {response[:400]}"
+    )
+
+
 async def parse_resume_with_ai(text: str) -> dict:
     """Use the configured AI provider to extract structured data from resume text."""
     from app.ai.factory import get_ai_provider
@@ -108,14 +141,10 @@ async def parse_resume_with_ai(text: str) -> dict:
     ]
     response = await provider.complete(messages)
 
-    # Strip any accidental markdown code fences
-    cleaned = re.sub(r"^```(?:json)?\s*", "", response.strip())
-    cleaned = re.sub(r"\s*```$", "", cleaned)
-
     try:
-        return json.loads(cleaned)
-    except json.JSONDecodeError as exc:
-        raise ValueError(f"AI returned invalid JSON: {exc}\nResponse: {response[:500]}")
+        return _extract_json_from_response(response)
+    except ValueError as exc:
+        raise ValueError(str(exc))
 
 
 # ── Preview / apply ───────────────────────────────────────────────────────────
