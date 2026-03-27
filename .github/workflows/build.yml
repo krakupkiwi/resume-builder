@@ -9,7 +9,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  # Images are named from your repo automatically: ghcr.io/YOUR_USERNAME/resume-builder-api etc.
+  # Images: ghcr.io/krakupkiwi/resume-builder-api and ghcr.io/krakupkiwi/resume-builder-frontend
   API_IMAGE: ghcr.io/${{ github.repository_owner }}/resume-builder-api
   FRONTEND_IMAGE: ghcr.io/${{ github.repository_owner }}/resume-builder-frontend
 

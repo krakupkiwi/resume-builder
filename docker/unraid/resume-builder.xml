@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <Container version="2">
   <Name>ResumeBuilder</Name>
-  <Repository>ghcr.io/yourusername/resume-builder:latest</Repository>
-  <Registry>https://github.com/yourusername/resume-builder/pkgs/container/resume-builder</Registry>
+  <Repository>ghcr.io/krakupkiwi/resume-builder:latest</Repository>
+  <Registry>https://github.com/krakupkiwi/resume-builder/pkgs/container/resume-builder</Registry>
   <Network>bridge</Network>
   <Shell>bash</Shell>
   <Privileged>false</Privileged>
@@ -14,7 +14,7 @@
   <Category>Productivity:</Category>
   <WebUI>http://[IP]:[PORT:3000]/</WebUI>
   <TemplateURL/>
-  <Icon>https://raw.githubusercontent.com/yourusername/resume-builder/main/icon.png</Icon>
+  <Icon>https://raw.githubusercontent.com/krakupkiwi/resume-builder/main/icon.png</Icon>
   <ExtraParams>--restart=unless-stopped</ExtraParams>
   <PostArgs/>
   <CPUset/>

@@ -33,7 +33,7 @@ Unraid will pull the images from GitHub Container Registry automatically.
 
 **Minimum required env vars:**
 ```
-GITHUB_OWNER=your-github-username
+GITHUB_OWNER=krakupkiwi
 AI_PROVIDER=claude
 ANTHROPIC_API_KEY=sk-ant-...
 SECRET_KEY=<run: openssl rand -hex 32>
@@ -43,7 +43,7 @@ SECRET_KEY=<run: openssl rand -hex 32>
 
 ```bash
 # Clone the repo
-git clone https://github.com/YOUR_USERNAME/resume-builder.git
+git clone https://github.com/krakupkiwi/resume-builder.git
 cd resume-builder
 
 # Configure
@@ -117,7 +117,7 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
-GitHub Actions will build and push `ghcr.io/YOUR_USERNAME/resume-builder-api:v1.0.0` and `...frontend:v1.0.0`.
+GitHub Actions will build and push `ghcr.io/krakupkiwi/resume-builder-api:v1.0.0` and `...frontend:v1.0.0`.
 
 ---
 
