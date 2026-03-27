@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { FileText, X, Check, AlertCircle, Loader2 } from 'lucide-react'
+import { FileText, X, Check, AlertCircle, Loader2, ChevronDown } from 'lucide-react'
 import { apiClient } from '@/api/client'
 import { useProfileStore } from '@/store/useProfileStore'
 import { profilesApi } from '@/api/profiles'
@@ -26,11 +26,15 @@ interface Props {
 }
 
 export function ResumeUploadDialog({ onClose, profileId }: Props) {
-  const { profiles, activeProfileId, setProfiles, setActiveProfile } = useProfileStore()
+  const { profiles, setProfiles, setActiveProfile } = useProfileStore()
   const [stage, setStage] = useState<'upload' | 'parsing' | 'preview' | 'importing' | 'done'>('upload')
   const [preview, setPreview] = useState<ResumeImportPreview | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // null = create new profile
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(
+    profileId || (profiles.length === 1 ? profiles[0].id : null)
+  )
 
   const onDrop = useCallback(async (accepted: File[]) => {
     const f = accepted[0]
@@ -72,11 +76,9 @@ export function ResumeUploadDialog({ onClose, profileId }: Props) {
 
     try {
       let result: UserProfile
-      const targetProfileId = profileId || activeProfileId
-      const profileExists = targetProfileId && profiles.some(p => p.id === targetProfileId)
 
-      if (profileExists) {
-        const res = await apiClient.post<UserProfile>(`/import/resume/${targetProfileId}`, formData, {
+      if (selectedProfileId) {
+        const res = await apiClient.post<UserProfile>(`/import/resume/${selectedProfileId}`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         })
         result = res.data
@@ -90,7 +92,6 @@ export function ResumeUploadDialog({ onClose, profileId }: Props) {
       const updated = await profilesApi.list()
       setProfiles(updated)
       setActiveProfile(result.id)
-
       toast.success('Resume imported successfully!')
       setStage('done')
       setTimeout(onClose, 1000)
@@ -153,21 +154,16 @@ export function ResumeUploadDialog({ onClose, profileId }: Props) {
 
         {stage === 'preview' && preview && (
           <>
+            {/* Parsed data summary */}
             <div className="bg-forest-800 rounded-lg p-4 mb-4 space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-cream-400">Name</span>
-                <span className="text-cream-200 font-500">{preview.full_name || '—'}</span>
+                <span className="text-cream-200">{preview.full_name || '—'}</span>
               </div>
               {preview.email && (
                 <div className="flex justify-between text-sm">
                   <span className="text-cream-400">Email</span>
                   <span className="text-cream-200">{preview.email}</span>
-                </div>
-              )}
-              {preview.phone && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-cream-400">Phone</span>
-                  <span className="text-cream-200">{preview.phone}</span>
                 </div>
               )}
               {preview.location && (
@@ -188,6 +184,50 @@ export function ResumeUploadDialog({ onClose, profileId }: Props) {
               <div className="flex justify-between text-sm">
                 <span className="text-cream-400">Skills found</span>
                 <span className="text-gold-400 font-mono">{preview.skills_count}</span>
+              </div>
+            </div>
+
+            {/* Profile selector */}
+            <div className="mb-4">
+              <label className="label mb-2">Add to profile</label>
+              <div className="space-y-1.5">
+                {profiles.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => setSelectedProfileId(p.id)}
+                    className={cn(
+                      'w-full flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-all',
+                      selectedProfileId === p.id
+                        ? 'border-gold-500 bg-gold-500/5'
+                        : 'border-forest-600 hover:border-forest-400 hover:bg-forest-800'
+                    )}
+                  >
+                    <div className={cn(
+                      'w-3 h-3 rounded-full border shrink-0 transition-colors',
+                      selectedProfileId === p.id ? 'border-gold-500 bg-gold-500' : 'border-forest-400'
+                    )} />
+                    <span className={cn('text-sm', selectedProfileId === p.id ? 'text-cream-100' : 'text-cream-300')}>
+                      {p.full_name}
+                    </span>
+                  </button>
+                ))}
+                <button
+                  onClick={() => setSelectedProfileId(null)}
+                  className={cn(
+                    'w-full flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-all',
+                    selectedProfileId === null
+                      ? 'border-gold-500 bg-gold-500/5'
+                      : 'border-forest-600 hover:border-forest-400 hover:bg-forest-800'
+                  )}
+                >
+                  <div className={cn(
+                    'w-3 h-3 rounded-full border shrink-0 transition-colors',
+                    selectedProfileId === null ? 'border-gold-500 bg-gold-500' : 'border-forest-400'
+                  )} />
+                  <span className={cn('text-sm', selectedProfileId === null ? 'text-cream-100' : 'text-cream-300')}>
+                    Create new profile
+                  </span>
+                </button>
               </div>
             </div>
 

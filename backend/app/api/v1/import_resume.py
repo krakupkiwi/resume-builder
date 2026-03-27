@@ -69,11 +69,9 @@ async def import_resume_to_profile(
     content = await file.read()
 
     from app.models.user_profile import UserProfile
-    from app.services.resume_import_service import extract_text, parse_resume_with_ai, apply_resume_import
+    from app.services.resume_import_service import extract_text, parse_resume_with_ai, apply_resume_import, build_resume_preview
 
     profile = db.query(UserProfile).filter(UserProfile.id == profile_id).first()
-    if not profile:
-        raise HTTPException(status_code=404, detail="Profile not found")
 
     try:
         text = extract_text(content, file.filename or "")
@@ -87,6 +85,19 @@ async def import_resume_to_profile(
         parsed = await parse_resume_with_ai(text)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"AI parsing failed: {exc}")
+
+    if not profile:
+        # Profile ID was stale — create a new profile from the resume
+        profile = UserProfile(
+            full_name=parsed.get("full_name") or "My Profile",
+            email=parsed.get("email"),
+            phone=parsed.get("phone"),
+            location=parsed.get("location"),
+            professional_summary=parsed.get("summary"),
+            linkedin_url=parsed.get("linkedin_url"),
+        )
+        db.add(profile)
+        db.flush()
 
     apply_resume_import(profile, parsed, db)
     db.commit()

@@ -72,14 +72,25 @@ async def import_linkedin(
     Merges experience and skills; does not overwrite manually entered data.
     """
     from app.models.user_profile import UserProfile
-    from app.services.linkedin_service import apply_linkedin_import
+    from app.services.linkedin_service import apply_linkedin_import, parse_linkedin_export
 
     profile = db.query(UserProfile).filter(UserProfile.id == profile_id).first()
-    if not profile:
-        raise HTTPException(status_code=404, detail="Profile not found")
 
     content = await file.read()
     data = _load_linkedin_file(content, file.filename or "")
+
+    if not profile:
+        # Stale profile ID — create a new profile from the LinkedIn data
+        preview = parse_linkedin_export(data)
+        profile = UserProfile(
+            full_name=preview["full_name"],
+            email=preview.get("email"),
+            location=preview.get("location"),
+            professional_summary=preview.get("summary"),
+            raw_linkedin_data=data,
+        )
+        db.add(profile)
+        db.flush()
 
     apply_linkedin_import(profile, data, db)
     db.commit()
