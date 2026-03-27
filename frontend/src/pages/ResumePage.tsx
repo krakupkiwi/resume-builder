@@ -98,7 +98,7 @@ function SectionsSidebar({
   }
 
   return (
-    <div className="flex flex-col h-full bg-forest-900 border-r border-forest-500 overflow-hidden">
+    <div className="w-[220px] shrink-0 flex flex-col bg-forest-900 border-r border-forest-500 overflow-hidden">
       {/* Resume name */}
       <div className="px-4 py-3 border-b border-forest-500 shrink-0">
         <p className="text-xs font-mono text-cream-500 uppercase tracking-wider mb-1">Résumé</p>
@@ -305,7 +305,7 @@ export function ResumePage() {
 
       {/* 3-panel layout */}
       {activeResume ? (
-        <div className="flex-1 overflow-hidden min-h-0 grid" style={{ gridTemplateColumns: '220px 1fr 280px', gridTemplateRows: '1fr' }}>
+        <div className="flex-1 overflow-hidden min-h-0 flex">
           <SectionsSidebar resume={activeResume} onUpdate={r => { updateResume(r); setPreviewKey(k => k + 1) }} />
           <DocumentPreview resumeVersionId={activeResume.id} refreshKey={previewKey} />
           <AIChatPanel resumeVersionId={activeResume.id} />

@@ -36,7 +36,7 @@ export function DocumentPreview({ resumeVersionId, refreshKey }: Props) {
   }
 
   return (
-    <div className="flex flex-col h-full bg-forest-900">
+    <div className="flex-1 min-w-0 flex flex-col bg-forest-900">
       {/* Preview toolbar */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-forest-500 h-10 shrink-0">
         <span className="text-xs font-mono text-cream-400 uppercase tracking-wider">Preview</span>

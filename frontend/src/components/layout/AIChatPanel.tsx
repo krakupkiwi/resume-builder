@@ -122,12 +122,16 @@ export function AIChatPanel({ resumeVersionId }: { resumeVersionId?: string }) {
   const { messages, isStreaming, gapAnalysis, addMessage, appendToLastMessage, setStreaming, clearMessages } = useAIStore()
   const [input, setInput] = useState('')
   const [interviewGap, setInterviewGap] = useState<GapItem | null>(null)
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const activeResumeId = useResumeStore(s => s.activeResumeId)
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    // Scroll only the messages container — never a parent via scrollIntoView
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight
+    }
   }, [messages])
 
   const sendMessage = async (overrideText?: string) => {
@@ -233,7 +237,7 @@ export function AIChatPanel({ resumeVersionId }: { resumeVersionId?: string }) {
   }
 
   return (
-    <div className="flex flex-col h-full bg-forest-900">
+    <div className="w-[280px] shrink-0 flex flex-col bg-forest-900">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2.5 border-b border-forest-500 h-10 shrink-0">
         <div className="flex items-center gap-2">
@@ -279,7 +283,7 @@ export function AIChatPanel({ resumeVersionId }: { resumeVersionId?: string }) {
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
         {messages.length === 0 && !interviewGap && (
           <div className="text-center py-8">
             <Sparkles className="w-8 h-8 text-forest-400 mx-auto mb-3" />
@@ -321,7 +325,7 @@ export function AIChatPanel({ resumeVersionId }: { resumeVersionId?: string }) {
             </div>
           </div>
         ))}
-        <div ref={bottomRef} />
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
