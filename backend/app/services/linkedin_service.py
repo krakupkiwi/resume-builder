@@ -1,21 +1,20 @@
 """
-LinkedIn JSON export parser.
+LinkedIn data export parser.
 
 LinkedIn's "Get a copy of your data" export (Settings > Data Privacy) produces
-a zip with several CSV files. When exported as JSON (via some tools) or when the
-user uses the full archive, the structure varies. This service handles both the
-standard LinkedIn CSV-derived JSON and the newer format.
-
-Supported input shapes:
-  - The JSON produced by the linkedin-to-json converter tools
-  - Direct parsing of LinkedIn's Profile.csv / Positions.csv / Skills.csv fields
-    pre-converted to a single JSON dict
+a ZIP file containing several CSV files. This service handles:
+  - LinkedIn ZIP exports (the actual format LinkedIn provides)
+  - Individual LinkedIn CSVs (Positions.csv, Profile.csv, etc.)
+  - Legacy JSON format from third-party converter tools
 
 Key guarantee: we NEVER infer or fabricate data. If a field is missing, it's None.
 """
 
+import csv
+import io
 import re
 import uuid
+import zipfile
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -23,6 +22,109 @@ from sqlalchemy.orm import Session
 from app.models.experience import ExperienceEntry
 from app.models.user_profile import UserProfile
 
+
+# ── ZIP / CSV entry points ────────────────────────────────────────────────────
+
+def parse_linkedin_zip_bytes(content: bytes) -> dict:
+    """
+    Parse a LinkedIn data export ZIP file.
+    LinkedIn exports a ZIP containing Profile.csv, Positions.csv, Skills.csv, etc.
+    Returns the same normalized dict as parse_linkedin_export().
+    """
+    try:
+        zf = zipfile.ZipFile(io.BytesIO(content))
+    except zipfile.BadZipFile as exc:
+        raise ValueError("Not a valid ZIP file") from exc
+
+    csv_files: dict[str, str] = {}
+    for name in zf.namelist():
+        basename = name.split("/")[-1]  # strip any subdirectory prefix
+        if basename.endswith(".csv"):
+            raw = zf.read(name)
+            csv_files[basename] = raw.decode("utf-8", errors="replace")
+
+    return _parse_linkedin_csvs(csv_files)
+
+
+def _parse_linkedin_csvs(csv_files: dict[str, str]) -> dict:
+    """Convert LinkedIn CSV files dict to the normalized export format."""
+    result: dict[str, Any] = {}
+
+    # Profile.csv
+    if "Profile.csv" in csv_files:
+        rows = _read_csv(csv_files["Profile.csv"])
+        if rows:
+            p = rows[0]
+            result["First Name"] = p.get("First Name", "")
+            result["Last Name"] = p.get("Last Name", "")
+            result["Headline"] = p.get("Headline", "")
+            result["Summary"] = p.get("Summary", "")
+            # LinkedIn uses "Geo Location" or sometimes "Location"
+            result["Location"] = p.get("Geo Location") or p.get("Location", "")
+
+    # Email Addresses.csv — pick primary, fall back to first
+    if "Email Addresses.csv" in csv_files:
+        rows = _read_csv(csv_files["Email Addresses.csv"])
+        for row in rows:
+            email = row.get("Email Address", "")
+            if not email:
+                continue
+            is_primary = row.get("Primary", "").strip().lower() in ("yes", "true")
+            if is_primary or "Email Address" not in result:
+                result["Email Address"] = email
+
+    # Positions.csv
+    positions: list[dict] = []
+    if "Positions.csv" in csv_files:
+        for row in _read_csv(csv_files["Positions.csv"]):
+            positions.append({
+                "company": row.get("Company Name", ""),
+                "title": row.get("Title", ""),
+                "description": row.get("Description", ""),
+                "location": row.get("Location", ""),
+                "start_date": row.get("Started On", ""),
+                "end_date": row.get("Finished On", ""),
+            })
+    result["positions"] = positions
+
+    # Education.csv
+    education: list[dict] = []
+    if "Education.csv" in csv_files:
+        for row in _read_csv(csv_files["Education.csv"]):
+            education.append({
+                "school": row.get("School Name", ""),
+                "degree": row.get("Degree Name", ""),
+                "start_date": row.get("Start Date", ""),
+                "end_date": row.get("End Date", ""),
+                "notes": row.get("Notes", ""),
+            })
+    result["education"] = education
+
+    # Skills.csv — column is "Name"
+    skills: list[dict] = []
+    if "Skills.csv" in csv_files:
+        for row in _read_csv(csv_files["Skills.csv"]):
+            name = row.get("Name", "").strip()
+            if name:
+                skills.append({"name": name})
+    result["skills"] = skills
+
+    return result
+
+
+def _read_csv(content: str) -> list[dict]:
+    """
+    Parse LinkedIn CSV text (which sometimes has a blank leading line) into
+    a list of dicts. Skips fully-empty rows.
+    """
+    lines = [line for line in content.splitlines() if line.strip()]
+    if not lines:
+        return []
+    reader = csv.DictReader(lines)
+    return [row for row in reader if any(v.strip() for v in row.values())]
+
+
+# ── JSON entry point ──────────────────────────────────────────────────────────
 
 def parse_linkedin_export(data: dict) -> dict:
     """
@@ -163,13 +265,14 @@ def _extract_positions(data: dict) -> list[dict]:
     """Extract work experience positions from various LinkedIn export formats."""
     positions = []
 
-    # Format 1: nested positions array
-    raw_positions = (
-        data.get("positions", {}).get("positionHistory", [])
-        or data.get("positions", [])
-        or data.get("workExperience", [])
-        or []
-    )
+    # Format 1: nested positions dict with positionHistory (some JSON exports)
+    positions_field = data.get("positions")
+    if isinstance(positions_field, dict):
+        raw_positions = positions_field.get("positionHistory", [])
+    elif isinstance(positions_field, list):
+        raw_positions = positions_field
+    else:
+        raw_positions = data.get("workExperience", []) or []
 
     if isinstance(raw_positions, list):
         for p in raw_positions:

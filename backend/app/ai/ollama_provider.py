@@ -8,9 +8,9 @@ from app.config import settings
 
 
 class OllamaProvider(AIProvider):
-    def __init__(self):
-        self._base_url = settings.OLLAMA_BASE_URL.rstrip("/")
-        self._model = settings.OLLAMA_MODEL
+    def __init__(self, base_url: str | None = None, model: str | None = None):
+        self._base_url = (base_url or settings.OLLAMA_BASE_URL).rstrip("/")
+        self._model = model or settings.OLLAMA_MODEL
 
     async def complete(self, messages: list[dict], **kwargs) -> str:
         full_messages = [{"role": "system", "content": TRUTHFULNESS_SYSTEM_PROMPT}] + [

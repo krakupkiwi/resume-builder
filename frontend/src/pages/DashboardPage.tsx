@@ -4,12 +4,14 @@ import { Plus, FileText, Briefcase, User, Upload, ArrowRight, Sparkles } from 'l
 import { useProfileStore } from '@/store/useProfileStore'
 import { profilesApi } from '@/api/profiles'
 import { LinkedInImportDialog } from '@/components/import/LinkedInImportDialog'
+import { ResumeUploadDialog } from '@/components/import/ResumeUploadDialog'
 import { useState } from 'react'
 
 export function DashboardPage() {
   const navigate = useNavigate()
   const { profiles, activeProfileId, setProfiles, setActiveProfile } = useProfileStore()
-  const [showImport, setShowImport] = useState(false)
+  const [showLinkedIn, setShowLinkedIn] = useState(false)
+  const [showResumeUpload, setShowResumeUpload] = useState(false)
   const [creatingProfile, setCreatingProfile] = useState(false)
 
   useEffect(() => {
@@ -41,21 +43,26 @@ export function DashboardPage() {
           </div>
           <h1 className="font-display text-3xl text-cream-100 mb-2">Welcome to Résumé Builder</h1>
           <p className="text-cream-400 mb-8 leading-relaxed">
-            Build tailored resumes for every job you want. Import your LinkedIn profile or start fresh.
+            Build tailored resumes for every job you want. Import your data or start fresh.
           </p>
 
           <div className="flex flex-col gap-3">
-            <button onClick={() => setShowImport(true)} className="btn-primary justify-center py-3 text-base">
+            <button onClick={() => setShowLinkedIn(true)} className="btn-primary justify-center py-3 text-base">
               <Upload className="w-4 h-4" />
-              Import LinkedIn Profile
+              Import LinkedIn Export (.zip)
             </button>
-            <button onClick={createProfile} disabled={creatingProfile} className="btn-ghost justify-center py-3 text-base border border-forest-500">
+            <button onClick={() => setShowResumeUpload(true)} className="btn-ghost justify-center py-3 text-base border border-forest-500">
+              <FileText className="w-4 h-4" />
+              Upload Existing Resume (PDF/DOCX)
+            </button>
+            <button onClick={createProfile} disabled={creatingProfile} className="btn-ghost justify-center py-3 text-base">
               <Plus className="w-4 h-4" />
               Create Profile Manually
             </button>
           </div>
         </div>
-        {showImport && <LinkedInImportDialog onClose={() => setShowImport(false)} />}
+        {showLinkedIn && <LinkedInImportDialog onClose={() => setShowLinkedIn(false)} />}
+        {showResumeUpload && <ResumeUploadDialog onClose={() => setShowResumeUpload(false)} />}
       </div>
     )
   }
@@ -108,21 +115,37 @@ export function DashboardPage() {
         ))}
       </div>
 
-      {/* Import option */}
-      <div className="panel rounded-lg p-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Upload className="w-4 h-4 text-cream-400" />
-          <div>
-            <p className="text-sm font-500 text-cream-200">Import LinkedIn data</p>
-            <p className="text-xs text-cream-500">Bulk-import your work history from LinkedIn export</p>
+      {/* Import options */}
+      <div className="space-y-2">
+        <div className="panel rounded-lg p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Upload className="w-4 h-4 text-cream-400" />
+            <div>
+              <p className="text-sm font-500 text-cream-200">Import LinkedIn data</p>
+              <p className="text-xs text-cream-500">Upload your LinkedIn export .zip file</p>
+            </div>
           </div>
+          <button onClick={() => setShowLinkedIn(true)} className="btn-ghost text-xs">
+            Import <ArrowRight className="w-3 h-3" />
+          </button>
         </div>
-        <button onClick={() => setShowImport(true)} className="btn-ghost text-xs">
-          Import <ArrowRight className="w-3 h-3" />
-        </button>
+
+        <div className="panel rounded-lg p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <FileText className="w-4 h-4 text-cream-400" />
+            <div>
+              <p className="text-sm font-500 text-cream-200">Upload existing resume</p>
+              <p className="text-xs text-cream-500">AI extracts your work history from PDF or DOCX</p>
+            </div>
+          </div>
+          <button onClick={() => setShowResumeUpload(true)} className="btn-ghost text-xs">
+            Upload <ArrowRight className="w-3 h-3" />
+          </button>
+        </div>
       </div>
 
-      {showImport && <LinkedInImportDialog onClose={() => setShowImport(false)} />}
+      {showLinkedIn && <LinkedInImportDialog onClose={() => setShowLinkedIn(false)} />}
+      {showResumeUpload && <ResumeUploadDialog onClose={() => setShowResumeUpload(false)} />}
     </div>
   )
 }

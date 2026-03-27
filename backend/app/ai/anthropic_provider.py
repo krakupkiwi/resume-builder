@@ -7,11 +7,12 @@ from app.config import settings
 
 
 class AnthropicProvider(AIProvider):
-    def __init__(self):
-        if not settings.ANTHROPIC_API_KEY:
+    def __init__(self, api_key: str | None = None, model: str | None = None):
+        _key = api_key or settings.ANTHROPIC_API_KEY
+        if not _key:
             raise ValueError("ANTHROPIC_API_KEY is not set")
-        self._client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
-        self._model = settings.CLAUDE_MODEL
+        self._client = anthropic.AsyncAnthropic(api_key=_key)
+        self._model = model or settings.CLAUDE_MODEL
 
     async def complete(self, messages: list[dict], **kwargs) -> str:
         # Separate system message from conversation

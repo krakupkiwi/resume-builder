@@ -7,11 +7,12 @@ from app.config import settings
 
 
 class OpenAIProvider(AIProvider):
-    def __init__(self):
-        if not settings.OPENAI_API_KEY:
+    def __init__(self, api_key: str | None = None, model: str | None = None):
+        _key = api_key or settings.OPENAI_API_KEY
+        if not _key:
             raise ValueError("OPENAI_API_KEY is not set")
-        self._client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
-        self._model = settings.OPENAI_MODEL
+        self._client = AsyncOpenAI(api_key=_key)
+        self._model = model or settings.OPENAI_MODEL
 
     async def complete(self, messages: list[dict], **kwargs) -> str:
         full_messages = [{"role": "system", "content": TRUTHFULNESS_SYSTEM_PROMPT}] + [

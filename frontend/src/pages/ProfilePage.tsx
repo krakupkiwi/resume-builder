@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Plus, Trash2, Edit2, Check, X, Upload, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, Trash2, Edit2, Check, X, Upload, FileText, ChevronDown, ChevronUp } from 'lucide-react'
 import { useProfileStore } from '@/store/useProfileStore'
 import { profilesApi, experienceApi } from '@/api/profiles'
 import { LinkedInImportDialog } from '@/components/import/LinkedInImportDialog'
+import { ResumeUploadDialog } from '@/components/import/ResumeUploadDialog'
 import type { ExperienceEntry, BulletEntry } from '@/types'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -311,6 +312,7 @@ function AddExperienceForm({ profileId, onAdded }: { profileId: string, onAdded:
 export function ProfilePage() {
   const { profiles, activeProfileId, experiences, setExperiences, addExperience } = useProfileStore()
   const [showImport, setShowImport] = useState(false)
+  const [showResumeUpload, setShowResumeUpload] = useState(false)
 
   const profile = profiles.find(p => p.id === activeProfileId)
 
@@ -333,9 +335,14 @@ export function ProfilePage() {
             <p className="text-xs font-mono text-gold-500 uppercase tracking-widest mb-1">Profile</p>
             <h1 className="font-display text-2xl text-cream-100">{profile.full_name}</h1>
           </div>
-          <button onClick={() => setShowImport(true)} className="btn-ghost text-sm border border-forest-500">
-            <Upload className="w-3.5 h-3.5" /> Import LinkedIn
-          </button>
+          <div className="flex gap-2">
+            <button onClick={() => setShowResumeUpload(true)} className="btn-ghost text-sm border border-forest-500">
+              <FileText className="w-3.5 h-3.5" /> Upload Resume
+            </button>
+            <button onClick={() => setShowImport(true)} className="btn-ghost text-sm border border-forest-500">
+              <Upload className="w-3.5 h-3.5" /> Import LinkedIn
+            </button>
+          </div>
         </div>
 
         <ProfileForm />
@@ -356,6 +363,7 @@ export function ProfilePage() {
       </div>
 
       {showImport && <LinkedInImportDialog onClose={() => setShowImport(false)} />}
+      {showResumeUpload && <ResumeUploadDialog onClose={() => setShowResumeUpload(false)} />}
     </div>
   )
 }

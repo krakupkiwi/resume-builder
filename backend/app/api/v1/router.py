@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1 import profiles, experience, resumes, jobs, cover_letters, ai, documents, import_linkedin, search
+from app.api.v1 import profiles, experience, resumes, jobs, cover_letters, ai, documents, import_linkedin, import_resume, search, settings
 
 v1_router = APIRouter()
 
@@ -12,4 +12,6 @@ v1_router.include_router(cover_letters.router, prefix="/cover-letters", tags=["c
 v1_router.include_router(ai.router, prefix="/ai", tags=["ai"])
 v1_router.include_router(documents.router, prefix="/documents", tags=["documents"])
 v1_router.include_router(import_linkedin.router, prefix="/import", tags=["import"])
+v1_router.include_router(import_resume.router, prefix="/import", tags=["import"])
 v1_router.include_router(search.router, prefix="/search", tags=["search"])
+v1_router.include_router(settings.router, prefix="/settings", tags=["settings"])
