@@ -1,3 +1,4 @@
+import asyncio
 import os
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -7,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.models.document import GeneratedDocument
+from app.models.base import new_uuid
 from app.schemas.ai import TaskStatus
 
 router = APIRouter()
@@ -20,16 +22,17 @@ class DocumentGenerateRequest(BaseModel):
 
 
 @router.post("/generate", response_model=TaskStatus)
-def generate_document(data: DocumentGenerateRequest, db: Session = Depends(get_db)):
+async def generate_document(data: DocumentGenerateRequest):
     """Enqueue async document generation."""
     from app.workers.tasks.document_tasks import generate_document_task
-    task = generate_document_task.delay(
-        resume_version_id=data.resume_version_id,
-        cover_letter_id=data.cover_letter_id,
-        format=data.format,
-        template_name=data.template_name,
-    )
-    return TaskStatus(task_id=task.id, status="pending")
+    from app.workers.task_manager import create_task, run_task
+
+    task_id = new_uuid()
+    create_task(task_id)
+    asyncio.create_task(run_task(task_id, generate_document_task,
+                                 data.resume_version_id, data.cover_letter_id,
+                                 data.format, data.template_name))
+    return TaskStatus(task_id=task_id, status="pending")
 
 
 @router.get("/{document_id}/download")

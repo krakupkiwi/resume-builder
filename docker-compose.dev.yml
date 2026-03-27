@@ -4,28 +4,16 @@ version: "3.9"
 # Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
 
 services:
-  api:
+  app:
+    image: resume-builder:local
+    build:
+      context: .
+      dockerfile: Dockerfile
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     environment:
       DEBUG: "true"
     volumes:
       - ./backend:/app
       - resume_data:/data
-
-  worker:
-    command: celery -A app.workers.celery_app worker --loglevel=debug --concurrency=1
-    volumes:
-      - ./backend:/app
-      - resume_data:/data
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.dev
     ports:
-      - "3000:5173"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    environment:
-      VITE_API_URL: "http://localhost:8000"
+      - "${APP_PORT:-8000}:8000"

@@ -1,11 +1,7 @@
 import os
 
-from app.workers.celery_app import celery_app
 
-
-@celery_app.task(name="documents.generate", bind=True)
 def generate_document_task(
-    self,
     resume_version_id: str | None,
     cover_letter_id: str | None,
     format: str,

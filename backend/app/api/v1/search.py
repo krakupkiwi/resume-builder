@@ -1,5 +1,9 @@
+import asyncio
+
 from pydantic import BaseModel
 from fastapi import APIRouter
+
+from app.models.base import new_uuid
 from app.schemas.ai import TaskStatus
 
 router = APIRouter()
@@ -19,12 +23,13 @@ class SearchResult(BaseModel):
 
 
 @router.post("/resume-examples", response_model=TaskStatus)
-def search_resume_examples(data: ResumeSearchRequest):
+async def search_resume_examples(data: ResumeSearchRequest):
     """Async search for resume examples for a given role."""
     from app.workers.tasks.search_tasks import search_resume_examples_task
-    task = search_resume_examples_task.delay(
-        role_title=data.role_title,
-        industry=data.industry,
-        seniority=data.seniority,
-    )
-    return TaskStatus(task_id=task.id, status="pending")
+    from app.workers.task_manager import create_task, run_task
+
+    task_id = new_uuid()
+    create_task(task_id)
+    asyncio.create_task(run_task(task_id, search_resume_examples_task,
+                                 data.role_title, data.industry, data.seniority))
+    return TaskStatus(task_id=task_id, status="pending")

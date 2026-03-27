@@ -6,6 +6,7 @@ from app.models.job_application import JobApplication
 from app.models.cover_letter import CoverLetter
 from app.models.document import GeneratedDocument
 from app.models.ai_conversation import AIConversation
+from app.models.async_task import AsyncTask
 
 __all__ = [
     "Base",
@@ -17,4 +18,5 @@ __all__ = [
     "CoverLetter",
     "GeneratedDocument",
     "AIConversation",
+    "AsyncTask",
 ]

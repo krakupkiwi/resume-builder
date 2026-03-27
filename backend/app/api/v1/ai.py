@@ -1,3 +1,4 @@
+import asyncio
 import json
 from typing import AsyncIterator, Any
 
@@ -14,6 +15,7 @@ from app.schemas.ai import (
     ExperienceScoringRequest,
     TaskStatus,
 )
+from app.models.base import new_uuid
 
 
 class InterviewStartRequest(BaseModel):
@@ -41,7 +43,6 @@ async def chat(data: ChatRequest, db: Session = Depends(get_db)):
             full_response += chunk
             yield f"data: {json.dumps({'chunk': chunk})}\n\n"
 
-        # Persist conversation
         if data.conversation_id:
             conv = db.query(AIConversation).filter(AIConversation.id == data.conversation_id).first()
             if conv:
@@ -58,14 +59,16 @@ async def chat(data: ChatRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/gap-analysis", response_model=TaskStatus)
-def run_gap_analysis(data: GapAnalysisRequest, db: Session = Depends(get_db)):
+async def run_gap_analysis(data: GapAnalysisRequest):
     """Enqueue async gap analysis task."""
     from app.workers.tasks.ai_tasks import run_gap_analysis_task
-    task = run_gap_analysis_task.delay(
-        resume_version_id=data.resume_version_id,
-        job_description=data.job_description,
-    )
-    return TaskStatus(task_id=task.id, status="pending")
+    from app.workers.task_manager import create_task, run_task
+
+    task_id = new_uuid()
+    create_task(task_id)
+    asyncio.create_task(run_task(task_id, run_gap_analysis_task,
+                                 data.resume_version_id, data.job_description))
+    return TaskStatus(task_id=task_id, status="pending")
 
 
 @router.post("/rewrite-bullet")
@@ -90,14 +93,16 @@ async def rewrite_bullet(data: BulletRewriteRequest):
 
 
 @router.post("/score-experience", response_model=TaskStatus)
-def score_experience(data: ExperienceScoringRequest):
+async def score_experience(data: ExperienceScoringRequest):
     """Enqueue experience scoring against a job description."""
     from app.workers.tasks.ai_tasks import score_experience_task
-    task = score_experience_task.delay(
-        experience_id=data.experience_id,
-        job_description=data.job_description,
-    )
-    return TaskStatus(task_id=task.id, status="pending")
+    from app.workers.task_manager import create_task, run_task
+
+    task_id = new_uuid()
+    create_task(task_id)
+    asyncio.create_task(run_task(task_id, score_experience_task,
+                                 data.experience_id, data.job_description))
+    return TaskStatus(task_id=task_id, status="pending")
 
 
 @router.post("/interview/start")
@@ -126,22 +131,9 @@ async def start_interview(data: InterviewStartRequest):
 @router.get("/tasks/{task_id}", response_model=TaskStatus)
 def get_task_status(task_id: str):
     """Poll for async task status and result."""
-    from app.workers.celery_app import celery_app
-    result = celery_app.AsyncResult(task_id)
+    from app.workers.task_manager import get_task
 
-    status_map = {
-        "PENDING": "pending",
-        "STARTED": "started",
-        "SUCCESS": "success",
-        "FAILURE": "failure",
-    }
-    status = status_map.get(result.state, "pending")
-    task_result = None
-    error = None
-
-    if result.state == "SUCCESS":
-        task_result = result.result
-    elif result.state == "FAILURE":
-        error = str(result.result)
-
-    return TaskStatus(task_id=task_id, status=status, result=task_result, error=error)
+    task = get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return TaskStatus(**task)

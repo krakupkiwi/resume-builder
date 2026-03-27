@@ -1,11 +1,8 @@
 import asyncio
 import json
 
-from app.workers.celery_app import celery_app
 
-
-@celery_app.task(name="ai.gap_analysis", bind=True)
-def run_gap_analysis_task(self, resume_version_id: str, job_description: str) -> dict:
+def run_gap_analysis_task(resume_version_id: str, job_description: str) -> dict:
     """Run gap analysis between a resume version and a job description."""
     from app.db.session import SessionLocal
     from app.models.resume import ResumeVersion
@@ -48,16 +45,13 @@ def run_gap_analysis_task(self, resume_version_id: str, job_description: str) ->
         provider = get_ai_provider()
         result_text = asyncio.run(provider.complete(messages))
 
-        # Parse JSON from response
         try:
-            # Extract JSON from response (may have surrounding text)
             start = result_text.find("{")
             end = result_text.rfind("}") + 1
             result = json.loads(result_text[start:end])
         except (json.JSONDecodeError, ValueError):
             result = {"raw_response": result_text, "parse_error": True}
 
-        # Cache result on the resume version
         resume.gap_analysis_result = result
         db.commit()
 
@@ -66,9 +60,7 @@ def run_gap_analysis_task(self, resume_version_id: str, job_description: str) ->
         db.close()
 
 
-@celery_app.task(name="ai.generate_cover_letter", bind=True)
 def generate_cover_letter_task(
-    self,
     job_application_id: str,
     resume_version_id: str | None,
     tone: str,
@@ -116,11 +108,9 @@ def generate_cover_letter_task(
         provider = get_ai_provider()
         body_plain = asyncio.run(provider.complete(messages))
 
-        # Convert plain text to basic HTML (preserve paragraphs)
         paragraphs = [p.strip() for p in body_plain.split("\n\n") if p.strip()]
         body_html = "".join(f"<p>{p}</p>" for p in paragraphs)
 
-        # Save the cover letter
         letter = CoverLetter(
             job_application_id=job_application_id,
             resume_version_id=resume_version_id,
@@ -139,13 +129,11 @@ def generate_cover_letter_task(
         db.close()
 
 
-@celery_app.task(name="ai.score_experience", bind=True)
-def score_experience_task(self, experience_id: str, job_description: str) -> dict:
+def score_experience_task(experience_id: str, job_description: str) -> dict:
     """Score a single experience entry against a job description."""
     from app.db.session import SessionLocal
     from app.models.experience import ExperienceEntry
     from app.ai.factory import get_ai_provider
-    import json
 
     db = SessionLocal()
     try:

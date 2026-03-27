@@ -2,17 +2,16 @@ version: "3.9"
 
 # ── Set GITHUB_OWNER in your .env file to your GitHub username ──────────────
 # e.g.  GITHUB_OWNER=samsmith
-# Images are pulled from: ghcr.io/GITHUB_OWNER/resume-builder-api:latest
+# Image is pulled from: ghcr.io/GITHUB_OWNER/resume-builder:latest
 
 services:
-  api:
-    image: ghcr.io/${GITHUB_OWNER}/resume-builder-api:${IMAGE_TAG:-latest}
+  app:
+    image: ghcr.io/${GITHUB_OWNER}/resume-builder:${IMAGE_TAG:-latest}
     restart: unless-stopped
     ports:
-      - "${API_PORT:-8000}:8000"
+      - "${APP_PORT:-8000}:8000"
     environment:
       DATABASE_URL: "sqlite:////data/resume_builder.db"
-      REDIS_URL: "redis://redis:6379/0"
       AI_PROVIDER: "${AI_PROVIDER:-claude}"
       ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
       CLAUDE_MODEL: "${CLAUDE_MODEL:-claude-opus-4-5}"
@@ -27,60 +26,12 @@ services:
       DEBUG: "${DEBUG:-false}"
     volumes:
       - resume_data:/data
-    depends_on:
-      redis:
-        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
 
-  worker:
-    image: ghcr.io/${GITHUB_OWNER}/resume-builder-api:${IMAGE_TAG:-latest}
-    command: celery -A app.workers.celery_app worker --loglevel=info --concurrency=2
-    restart: unless-stopped
-    environment:
-      DATABASE_URL: "sqlite:////data/resume_builder.db"
-      REDIS_URL: "redis://redis:6379/0"
-      AI_PROVIDER: "${AI_PROVIDER:-claude}"
-      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
-      CLAUDE_MODEL: "${CLAUDE_MODEL:-claude-opus-4-5}"
-      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
-      OPENAI_MODEL: "${OPENAI_MODEL:-gpt-4o}"
-      OLLAMA_BASE_URL: "${OLLAMA_BASE_URL:-http://ollama:11434}"
-      OLLAMA_MODEL: "${OLLAMA_MODEL:-llama3.2}"
-      STORAGE_PATH: "/data/files"
-      SEARCH_PROVIDER: "${SEARCH_PROVIDER:-duckduckgo}"
-      SERPAPI_KEY: "${SERPAPI_KEY:-}"
-      SECRET_KEY: "${SECRET_KEY:-changeme-generate-a-real-secret}"
-    volumes:
-      - resume_data:/data
-    depends_on:
-      - redis
-      - api
-
-  frontend:
-    image: ghcr.io/${GITHUB_OWNER}/resume-builder-frontend:${IMAGE_TAG:-latest}
-    restart: unless-stopped
-    ports:
-      - "${FRONTEND_PORT:-3000}:80"
-    depends_on:
-      - api
-
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    volumes:
-      - redis_data:/data
-
 volumes:
   resume_data:
-    driver: local
-  redis_data:
     driver: local

@@ -16,9 +16,6 @@ class Settings(BaseSettings):
     OLLAMA_BASE_URL: str = "http://ollama:11434"
     OLLAMA_MODEL: str = "llama3.2"
 
-    # Redis / Celery
-    REDIS_URL: str = "redis://redis:6379/0"
-
     # Storage
     STORAGE_PATH: str = "/data/files"
 
